@@ -11,7 +11,7 @@ jobs:
         with: { gradle-version: 9.2.0 }
       - name: Build
         run: |
-          ZIP=$(find . -name 'novaclient-fabric-1_21_11-project-v2.4.zip' | head -1)
+          ZIP=$(find . -name 'novaclient-fabric-1_21_11-project-v2_5.zip' | head -1)
           echo "Zip: $ZIP"
           unzip -oq "$ZIP" -d proj
           gradle -p proj build
