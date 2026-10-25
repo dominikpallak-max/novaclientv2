@@ -1,0 +1,59 @@
+name: build
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.2.0
+
+      - name: Rozpakuj archiwum i znajdź projekt
+        run: |
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "::error::Nie znaleziono pliku ZIP w katalogu głównym!"
+            exit 1
+          fi
+          
+          mkdir -p unpacked
+          unzip -q "$ZIP_FILE" -d unpacked
+          
+          SETTINGS_FILE=$(find unpacked -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "::error::Brak settings.gradle lub settings.gradle.kts w rozpakowanym archiwum!"
+            exit 1
+          fi
+          
+          DIR=$(dirname "$SETTINGS_FILE")
+          echo "Projekt w: $DIR"
+          echo "PROJECT_DIR=$DIR" >> "$GITHUB_ENV"
+
+      - name: Poprawka getPos
+        run: |
+          FILE_PATH=$(find unpacked -name CheatModules.java | head -1)
+          if [ -n "$FILE_PATH" ]; then
+            echo "Znaleziono plik: $FILE_PATH"
+            sed -i 's|double d = pos.getSquaredDistance(p.getPos());|double d = (pos.getX()+0.5-p.getX())*(pos.getX()+0.5-p.getX()) + (pos.getY()+0.5-p.getY())*(pos.getY()+0.5-p.getY()) + (pos.getZ()+0.5-p.getZ())*(pos.getZ()+0.5-p.getZ());|' "$FILE_PATH"
+          else
+            echo "::warning::Nie znaleziono pliku CheatModules.java, pomijam poprawkę."
+          fi
+
+      - name: Build
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: gradle build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: novaclient
+          path: ${{ env.PROJECT_DIR }}/build/libs/*.jar
+          
