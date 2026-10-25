@@ -28,12 +28,11 @@ jobs:
           mkdir -p unpacked
           unzip -q "$ZIP_FILE" -d unpacked
           
-          SETTINGS_FILE=$(find unpacked -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)
-          if [ -z "$SETTINGS_FILE" ]; then
-            echo "::error::Brak settings.gradle lub settings.gradle.kts w rozpakowanym archiwum!"
-            exit 1
+          if [ ! -f unpacked/settings.gradle ] && [ ! -f unpacked/settings.gradle.kts ]; then
+            echo "rootProject.name = 'novaclient'" > unpacked/settings.gradle
           fi
           
+          SETTINGS_FILE=$(find unpacked -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)
           DIR=$(dirname "$SETTINGS_FILE")
           echo "Projekt w: $DIR"
           echo "PROJECT_DIR=$DIR" >> "$GITHUB_ENV"
